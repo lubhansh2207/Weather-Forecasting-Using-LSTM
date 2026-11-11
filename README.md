@@ -16,7 +16,6 @@ This project demonstrates the use of deep learning for time-series weather forec
 - Matplotlib 3.8.4
 - Scikit-learn 1.4.2
 - LSTM (Long Short-Term Memory)
-- HTML and CSS
 
 ## Project Structure
 
