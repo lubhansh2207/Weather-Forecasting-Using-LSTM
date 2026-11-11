@@ -1,0 +1,336 @@
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import (
+    Input,
+    LSTM,
+    Dense,
+    Dropout
+)
+
+from tensorflow.keras.utils import to_categorical
+label_encoder = LabelEncoder()
+
+df = pd.read_csv('weather_forecasting.csv')
+
+df['Condition_Encoded'] = label_encoder.fit_transform(
+    df['Condition']
+)
+
+# Convert categorical labels to one-hot vectors
+
+condition_onehot = to_categorical(df['Condition_Encoded'])
+
+# =========================================================
+# SCALE TEMPERATURE
+# =========================================================
+
+temp_scaler = MinMaxScaler()
+
+scaled_temp = temp_scaler.fit_transform(
+    df[['Temperature']]
+)
+
+# =========================================================
+# CREATE SEQUENCES
+# =========================================================
+
+sequence_length = 30
+
+X = []
+y_temp = []
+y_condition = []
+
+for i in range(sequence_length, len(df)):
+
+    X.append(
+        scaled_temp[i-sequence_length:i]
+    )
+
+    y_temp.append(
+        scaled_temp[i]
+    )
+
+    y_condition.append(
+        condition_onehot[i]
+    )
+
+X = np.array(X)
+
+y_temp = np.array(y_temp)
+
+y_condition = np.array(y_condition)
+
+print("X Shape:", X.shape)
+print("Temperature Output Shape:", y_temp.shape)
+print("Condition Output Shape:", y_condition.shape)
+
+# =========================================================
+# TRAIN TEST SPLIT
+# =========================================================
+
+X_train, X_test, y_temp_train, y_temp_test, \
+y_cond_train, y_cond_test = train_test_split(
+    X,
+    y_temp,
+    y_condition,
+    test_size=0.2,
+    random_state=42
+)
+
+# =========================================================
+# BUILD MULTI-OUTPUT LSTM MODEL
+# =========================================================
+
+inputs = Input(shape=(sequence_length, 1))
+
+x = LSTM(64, return_sequences=True)(inputs)
+
+x = Dropout(0.2)(x)
+
+x = LSTM(64)(x)
+
+x = Dropout(0.2)(x)
+
+# ---------------------------------
+# TEMPERATURE OUTPUT
+# ---------------------------------
+
+temp_output = Dense(
+    1,
+    name='temperature_output'
+)(x)
+
+# ---------------------------------
+# WEATHER CONDITION OUTPUT
+# ---------------------------------
+
+condition_output = Dense(
+    len(label_encoder.classes_),
+    activation='softmax',
+    name='condition_output'
+)(x)
+
+# ---------------------------------
+# FINAL MODEL
+# ---------------------------------
+
+model = Model(
+    inputs=inputs,
+    outputs=[
+        temp_output,
+        condition_output
+    ]
+)
+
+# =========================================================
+# COMPILE MODEL
+# =========================================================
+
+model.compile(
+
+    optimizer='adam',
+
+    loss={
+        'temperature_output': 'mse',
+        'condition_output': 'categorical_crossentropy'
+    },
+
+    metrics={
+        'temperature_output': ['mae'],
+        'condition_output': ['accuracy']
+    }
+)
+
+model.summary()
+
+# =========================================================
+# TRAIN MODEL
+# =========================================================
+
+history = model.fit(
+
+    X_train,
+
+    {
+        'temperature_output': y_temp_train,
+        'condition_output': y_cond_train
+    },
+
+    validation_data=(
+
+        X_test,
+
+        {
+            'temperature_output': y_temp_test,
+            'condition_output': y_cond_test
+        }
+
+    ),
+
+    epochs=20,
+
+    batch_size=32
+)
+
+# =========================================================
+# PREDICTIONS
+# =========================================================
+
+temp_pred, cond_pred = model.predict(X_test)
+
+# Convert temperature back
+
+temp_pred_actual = temp_scaler.inverse_transform(temp_pred)
+
+temp_test_actual = temp_scaler.inverse_transform(y_temp_test)
+
+# Get predicted weather labels
+
+predicted_conditions = np.argmax(cond_pred, axis=1)
+
+actual_conditions = np.argmax(y_cond_test, axis=1)
+
+predicted_labels = label_encoder.inverse_transform(
+    predicted_conditions
+)
+
+actual_labels = label_encoder.inverse_transform(
+    actual_conditions
+)
+
+# =========================================================
+# DISPLAY SAMPLE PREDICTIONS
+# =========================================================
+
+print("\n================ SAMPLE PREDICTIONS ================\n")
+
+for i in range(10):
+
+    print(f"Actual Temp: {temp_test_actual[i][0]:.2f} °C")
+
+    print(f"Predicted Temp: {temp_pred_actual[i][0]:.2f} °C")
+
+    print(f"Actual Condition: {actual_labels[i]}")
+
+    print(f"Predicted Condition: {predicted_labels[i]}")
+
+    print("-" * 50)
+
+# =========================================================
+# VISUALIZE TEMPERATURE PREDICTION
+# =========================================================
+
+plt.figure(figsize=(14,6))
+
+plt.plot(
+    temp_test_actual[:100],
+    label='Actual Temperature'
+)
+
+plt.plot(
+    temp_pred_actual[:100],
+    label='Predicted Temperature'
+)
+
+plt.title("Temperature Forecasting using LSTM")
+
+plt.xlabel("Samples")
+
+plt.ylabel("Temperature")
+
+plt.legend()
+
+plt.show()
+
+# =========================================================
+# FUTURE FORECASTING
+# =========================================================
+
+future_days = 7
+
+last_sequence = scaled_temp[-sequence_length:]
+
+future_temps = []
+
+future_conditions = []
+
+current_sequence = last_sequence.reshape(
+    1,
+    sequence_length,
+    1
+)
+
+for _ in range(future_days):
+
+    next_temp, next_cond = model.predict(current_sequence)
+
+    # Save temperature
+
+    future_temps.append(next_temp[0][0])
+
+    # Save weather condition
+
+    cond_index = np.argmax(next_cond)
+
+    cond_label = label_encoder.inverse_transform(
+        [cond_index]
+    )[0]
+
+    future_conditions.append(cond_label)
+
+    # Update sequence
+
+    current_sequence = np.append(
+        current_sequence[:,1:,:],
+        [[[next_temp[0][0]]]],
+        axis=1
+    )
+
+# Convert temperatures back
+
+future_temps = temp_scaler.inverse_transform(
+    np.array(future_temps).reshape(-1,1)
+)
+
+# =========================================================
+# DISPLAY FUTURE FORECAST
+# =========================================================
+
+print("\n================ 7-DAY FORECAST ================\n")
+
+for i in range(future_days):
+
+    print(
+        f"Day {i+1}: "
+        f"{future_temps[i][0]:.2f} °C | "
+        f"{future_conditions[i]}"
+    )
+
+# =========================================================
+# FUTURE FORECAST VISUALIZATION
+# =========================================================
+
+plt.figure(figsize=(10,5))
+
+plt.plot(
+    range(1, future_days+1),
+    future_temps,
+    marker='o'
+)
+
+plt.title("7-Day Temperature Forecast")
+
+plt.xlabel("Future Days")
+
+plt.ylabel("Temperature")
+
+plt.grid(True)
+
+plt.show()

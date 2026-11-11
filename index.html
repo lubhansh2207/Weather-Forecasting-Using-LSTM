@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Weather Forecasting App</title>
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  />
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body{
+      background: linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);
+      min-height:100vh;
+      color:white;
+      overflow-x:hidden;
+    }
+
+    .container{
+      width:95%;
+      max-width:1400px;
+      margin:auto;
+      padding:30px 0;
+    }
+
+    .top-section{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom:30px;
+    }
+
+    .title-area h1{
+      font-size:3rem;
+      font-weight:700;
+      margin-bottom:10px;
+    }
+
+    .title-area p{
+      color:#dbeafe;
+      font-size:1.1rem;
+    }
+
+    .live-badge{
+      background:rgba(255,255,255,0.15);
+      padding:12px 20px;
+      border-radius:20px;
+      backdrop-filter:blur(10px);
+      font-weight:600;
+      border:1px solid rgba(255,255,255,0.2);
+    }
+
+    .dashboard{
+      display:grid;
+      grid-template-columns: 1.2fr 2fr;
+      gap:25px;
+    }
+
+    .glass-card{
+      background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:28px;
+      padding:25px;
+      backdrop-filter:blur(18px);
+      box-shadow:0 8px 32px rgba(0,0,0,0.25);
+    }
+
+    .forecast-form h2{
+      margin-bottom:25px;
+      font-size:1.7rem;
+    }
+
+    .input-group{
+      margin-bottom:20px;
+    }
+
+    .input-group label{
+      display:block;
+      margin-bottom:8px;
+      font-weight:600;
+      color:#dbeafe;
+    }
+
+    .input-group input,
+    .input-group select{
+      width:100%;
+      padding:14px;
+      border:none;
+      border-radius:14px;
+      background:rgba(255,255,255,0.15);
+      color:white;
+      font-size:1rem;
+      outline:none;
+    }
+
+    .input-group input::-webkit-calendar-picker-indicator{
+      filter:invert(1);
+    }
+
+    .input-group option{
+      color:black;
+    }
+
+    .forecast-btn{
+      width:100%;
+      padding:16px;
+      border:none;
+      border-radius:16px;
+      background:linear-gradient(to right,#38bdf8,#2563eb);
+      color:white;
+      font-size:1rem;
+      font-weight:700;
+      cursor:pointer;
+      transition:0.3s;
+      margin-top:10px;
+    }
+
+    .forecast-btn:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 20px rgba(37,99,235,0.4);
+    }
+
+    .mini-stats{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:15px;
+      margin-top:25px;
+    }
+
+    .mini-box{
+      background:rgba(255,255,255,0.12);
+      padding:18px;
+      border-radius:18px;
+      text-align:center;
+    }
+
+    .mini-box i{
+      font-size:1.8rem;
+      margin-bottom:10px;
+      color:#7dd3fc;
+    }
+
+    .mini-box h3{
+      font-size:1.6rem;
+      margin-bottom:5px;
+    }
+
+    .weather-display{
+      display:flex;
+      flex-direction:column;
+      gap:25px;
+    }
+
+    .main-weather{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      background:linear-gradient(
+        135deg,
+        rgba(255,255,255,0.15),
+        rgba(255,255,255,0.05)
+      );
+      padding:30px;
+      border-radius:25px;
+    }
+
+    .weather-info h1{
+      font-size:4rem;
+      margin-bottom:10px;
+    }
+
+    .weather-info h2{
+      font-size:2rem;
+      margin-bottom:10px;
+    }
+
+    .weather-info p{
+      color:#dbeafe;
+      font-size:1.1rem;
+    }
+
+    .weather-icon{
+      font-size:7rem;
+      color:#facc15;
+    }
+
+    .forecast-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+      gap:18px;
+    }
+
+    .forecast-card{
+      background:rgba(255,255,255,0.12);
+      border-radius:22px;
+      padding:22px;
+      text-align:center;
+      transition:0.3s;
+    }
+
+    .forecast-card:hover{
+      transform:translateY(-5px);
+      background:rgba(255,255,255,0.18);
+    }
+
+    .forecast-card h3{
+      margin-bottom:15px;
+      font-size:1rem;
+    }
+
+    .forecast-card i{
+      font-size:2.5rem;
+      margin-bottom:15px;
+      color:#fde047;
+    }
+
+    .forecast-card .temp{
+      font-size:2rem;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+
+    .forecast-card .condition{
+      color:#dbeafe;
+    }
+
+    .chart-section{
+      margin-top:25px;
+      background:rgba(255,255,255,0.12);
+      border-radius:24px;
+      padding:20px;
+    }
+
+    .chart-section h2{
+      margin-bottom:20px;
+    }
+
+    .chart-placeholder{
+      height:260px;
+      border-radius:20px;
+      display:flex;
+      align-items:end;
+      gap:15px;
+      padding:20px;
+      background:rgba(255,255,255,0.08);
+    }
+
+    .bar{
+      flex:1;
+      border-radius:14px 14px 0 0;
+      background:linear-gradient(to top,#38bdf8,#60a5fa);
+      position:relative;
+      animation:grow 1s ease;
+    }
+
+    .bar span{
+      position:absolute;
+      top:-30px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:0.9rem;
+      font-weight:600;
+    }
+
+    @keyframes grow{
+      from{
+        height:0;
+      }
+    }
+
+    @media(max-width:1000px){
+
+      .dashboard{
+        grid-template-columns:1fr;
+      }
+
+      .weather-info h1{
+        font-size:3rem;
+      }
+
+      .weather-icon{
+        font-size:5rem;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="top-section">
+
+      <div class="title-area">
+        <h1>
+          <i class="fa-solid fa-cloud-sun"></i>
+          AI Weather Forecasting
+        </h1>
+
+        <p>
+          Smart LSTM based weather prediction system with
+          temperature forecasting and weather conditions
+        </p>
+      </div>
+
+      <div class="live-badge">
+        <i class="fa-solid fa-location-dot"></i>
+        Delhi, India
+      </div>
+
+    </div>
+
+    <div class="dashboard">
+
+      <!-- LEFT PANEL -->
+
+      <div class="glass-card forecast-form">
+
+        <h2>
+          <i class="fa-solid fa-sliders"></i>
+          Forecast Settings
+        </h2>
+
+        <div class="input-group">
+          <label>Select Forecast Date</label>
+          <input type="date">
+        </div>
+
+        <div class="input-group">
+          <label>Forecast Duration</label>
+          <select>
+            <option>1 Day</option>
+            <option>3 Days</option>
+            <option>7 Days</option>
+            <option>14 Days</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>City / Location</label>
+          <input type="text" placeholder="Enter city name">
+        </div>
+
+        <div class="input-group">
+          <label>Weather Model</label>
+          <select>
+            <option>LSTM AI Forecast</option>
+            <option>Deep Neural Weather Model</option>
+            <option>Hybrid Forecasting</option>
+          </select>
+        </div>
+
+        <button class="forecast-btn">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          Generate Forecast
+        </button>
+
+        <div class="mini-stats">
+
+          <div class="mini-box">
+            <i class="fa-solid fa-temperature-half"></i>
+            <h3>32°C</h3>
+            <p>Avg Temp</p>
+          </div>
+
+          <div class="mini-box">
+            <i class="fa-solid fa-cloud-rain"></i>
+            <h3>65%</h3>
+            <p>Humidity</p>
+          </div>
+
+          <div class="mini-box">
+            <i class="fa-solid fa-wind"></i>
+            <h3>12 km/h</h3>
+            <p>Wind Speed</p>
+          </div>
+
+          <div class="mini-box">
+            <i class="fa-solid fa-droplet"></i>
+            <h3>20%</h3>
+            <p>Rain Chance</p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT PANEL -->
+
+      <div class="weather-display">
+
+        <div class="main-weather">
+
+          <div class="weather-info">
+
+            <h2>Today's Forecast</h2>
+
+            <h1>34°C</h1>
+
+            <p>
+              Sunny with light clouds • AI Confidence 94%
+            </p>
+
+          </div>
+
+          <div class="weather-icon">
+            <i class="fa-solid fa-sun"></i>
+          </div>
+
+        </div>
+
+        <div class="forecast-grid">
+
+          <div class="forecast-card">
+            <h3>Monday</h3>
+            <i class="fa-solid fa-cloud-sun"></i>
+            <div class="temp">31°C</div>
+            <div class="condition">Cloudy</div>
+          </div>
+
+          <div class="forecast-card">
+            <h3>Tuesday</h3>
+            <i class="fa-solid fa-cloud-rain"></i>
+            <div class="temp">28°C</div>
+            <div class="condition">Rainy</div>
+          </div>
+
+          <div class="forecast-card">
+            <h3>Wednesday</h3>
+            <i class="fa-solid fa-sun"></i>
+            <div class="temp">35°C</div>
+            <div class="condition">Sunny</div>
+          </div>
+
+          <div class="forecast-card">
+            <h3>Thursday</h3>
+            <i class="fa-solid fa-cloud-bolt"></i>
+            <div class="temp">26°C</div>
+            <div class="condition">Stormy</div>
+          </div>
+
+        </div>
+
+        <div class="chart-section">
+
+          <h2>
+            <i class="fa-solid fa-chart-line"></i>
+            Temperature Trend
+          </h2>
+
+          <div class="chart-placeholder">
+
+            <div class="bar" style="height:70%;">
+              <span>30°</span>
+            </div>
+
+            <div class="bar" style="height:85%;">
+              <span>34°</span>
+            </div>
+
+            <div class="bar" style="height:60%;">
+              <span>28°</span>
+            </div>
+
+            <div class="bar" style="height:90%;">
+              <span>36°</span>
+            </div>
+
+            <div class="bar" style="height:75%;">
+              <span>31°</span>
+            </div>
+
+            <div class="bar" style="height:65%;">
+              <span>29°</span>
+            </div>
+
+            <div class="bar" style="height:80%;">
+              <span>33°</span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>
