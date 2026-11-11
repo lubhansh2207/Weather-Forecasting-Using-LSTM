@@ -9,10 +9,14 @@ This project demonstrates the use of deep learning for time-series weather forec
 ## Technologies Used
 
 - Python
+- Streamlit 1.35.0
+- TensorFlow 2.15.0
+- Pandas 2.2.2
+- NumPy 1.26.4
+- Matplotlib 3.8.4
+- Scikit-learn 1.4.2
 - LSTM (Long Short-Term Memory)
-- Deep Learning
-- HTML
-- Jupyter Notebook
+- HTML and CSS
 
 ## Project Structure
 
@@ -55,5 +59,5 @@ pip install -r requirements.txt
 4. Run the application:
 
 ```bash
-python app.py
+streamlit run app.py
 ```
